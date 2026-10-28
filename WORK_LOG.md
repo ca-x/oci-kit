@@ -1,5 +1,15 @@
 # Work log
 
+## 2026-10-28 — Desktop dependency gate remote verification
+
+- Run `40677322538` passed the minimum-Rust and static-runtime jobs, including
+  the new platform-service process tests. The stable job stopped at two
+  runner-reported rustfmt differences; apply exactly those source changes and
+  require a fresh full run. No build, formatter or test ran on this host.
+- Retrieved the LightOS lifecycle, seed-injection and remote-authentication
+  memories again. Keep platform-owned accounts and authentication unchanged;
+  a remote graphical session does not require a physical VT.
+
 ## 2026-10-28 — GitHub-only execution policy
 
 - The user now requires all downloads and builds on GitHub. From this point,

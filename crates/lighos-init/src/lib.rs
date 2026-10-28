@@ -1,5 +1,5 @@
-use std::fs::{self, File, Metadata};
 use std::collections::BTreeSet;
+use std::fs::{self, File, Metadata};
 use std::io::{Read, Write};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -67,7 +67,10 @@ impl Profile {
                 "invalid platform service name"
             );
             ensure!(
-                !matches!(name.as_str(), "lighos-init.service" | "lightos-setup.service"),
+                !matches!(
+                    name.as_str(),
+                    "lighos-init.service" | "lightos-setup.service"
+                ),
                 "platform service creates an initialization dependency cycle"
             );
             ensure!(services.insert(name), "duplicate platform service");
