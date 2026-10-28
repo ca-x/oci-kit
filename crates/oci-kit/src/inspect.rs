@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
+use std::io::{self, BufRead, BufReader, Read};
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result, bail, ensure};
@@ -132,6 +132,15 @@ pub fn inspect_archive(
         if selections.iter().any(|prefix| path.starts_with(prefix)) {
             report.selected.push(info);
         }
+    }
+    io::copy(&mut archive.into_inner(), &mut io::sink())
+        .context("validating complete archive stream")?;
+    for path in texts {
+        ensure!(
+            report.text.contains_key(&path),
+            "requested text not found: {}",
+            path.display()
+        );
     }
     Ok(report)
 }

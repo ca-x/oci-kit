@@ -54,6 +54,9 @@ operations from mounts appearing after the initial snapshot.
 Inspection must not extract an untrusted archive. Reject traversal and absolute
 entry paths; report devices and links. Archive extraction is a separate,
 privileged build step using a mature tool preserving owners/ACLs/xattrs.
+Explicit text requests must resolve to a present regular UTF-8 file within the
+documented limit. Truncated member payloads and compression-decoder errors must
+not be reported as successful inspection.
 
 ## LightOS contract
 
@@ -85,3 +88,14 @@ this first implementation must not advertise them as completed.
 
 Public repositories contain source only. Rootfs and image redistribution rights
 must be checked separately; no automatic public image publishing is assumed.
+
+## CLI completion gate
+
+Pond image packaging must not start until every agreed CLI function has runtime
+acceptance evidence, the declared Rust minimum and Linux x86-64 static build are
+verified, and independent review has no unresolved important finding. Exercise
+real process interfaces and failure exit codes, not just library helpers. Use
+isolated fixtures for initialization; never apply test profiles to the running
+LightOS installation. Record the feature matrix and evidence in the work log.
+Other architectures and the physical desktop are separate, explicitly bounded
+acceptance targets, not silently claimed by the word "generic".

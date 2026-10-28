@@ -73,3 +73,50 @@ fn refuses_parent_traversal_and_absolute_archive_paths() {
         assert!(inspect_archive(&path, &[], &[]).is_err());
     }
 }
+
+#[test]
+fn requested_text_must_exist() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("rootfs.tar");
+    fs::write(&path, archive()).unwrap();
+    let error = inspect_archive(&path, &[], &[PathBuf::from("etc/missing")]).unwrap_err();
+    assert!(error.to_string().contains("requested text not found"));
+}
+
+#[test]
+fn truncated_unselected_member_is_not_a_successful_inspection() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("truncated.tar");
+    fs::write(&path, &archive()[..517]).unwrap();
+    assert!(inspect_archive(&path, &[], &[]).is_err());
+}
+
+#[test]
+fn validates_gzip_trailer_after_tar_end_marker() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("corrupt.gz");
+    let mut data = archive();
+    data.resize(256 * 1024, 0);
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder.write_all(&data).unwrap();
+    let mut encoded = encoder.finish().unwrap();
+    let checksum_offset = encoded.len() - 8;
+    encoded[checksum_offset] ^= 1;
+    fs::write(&path, encoded).unwrap();
+    assert!(inspect_archive(&path, &[], &[]).is_err());
+}
+
+#[test]
+fn validates_zstd_checksum_after_tar_end_marker() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("corrupt.zst");
+    let mut data = archive();
+    data.resize(256 * 1024, 0);
+    let mut encoder = zstd::stream::write::Encoder::new(Vec::new(), 1).unwrap();
+    encoder.include_checksum(true).unwrap();
+    encoder.write_all(&data).unwrap();
+    let mut encoded = encoder.finish().unwrap();
+    *encoded.last_mut().unwrap() ^= 1;
+    fs::write(&path, encoded).unwrap();
+    assert!(inspect_archive(&path, &[], &[]).is_err());
+}

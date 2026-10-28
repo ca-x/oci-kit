@@ -55,3 +55,28 @@ OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
   inspect the existing SSH configuration before diagnosing authentication.
 - The earlier HTTPS failures do not block this SSH push. Remote CI and image
   construction still require their own evidence; publication alone proves neither.
+
+## 2026-10-28 — CLI completion gate
+
+- The user requires full CLI completion before starting the image project,
+  continuous execution afterwards, and independent agents for review. No image
+  workflow has been dispatched. The follow-up plan is
+  `docs/superpowers/plans/2026-10-28-cli-completion.md`.
+- Existing helper/fixture tests and source CI do not close process-interface,
+  minimum-Rust or static-binary acceptance gaps. These are now explicit gates.
+- A read-only adapter audit was requested, but the reviewer could not start due
+  to model capacity. Its slot was closed. Review remains pending, not approved.
+- Recorded the CLI-first ordering and continuous SSH/review workflow in Nowledge
+  preference memory `64fa168c-9cf9-4f88-a874-00a8c5233986`.
+- Task 1: observed three real inspector failures: absent requested text silently
+  succeeded, and corrupt gzip/zstd checksums beyond the tar end marker escaped
+  validation. Added regressions, observed all three fail, then drained the decoder
+  and required every requested text path. All seven inspector tests now pass;
+  the truncated-member test already passed and required no speculative fix.
+- Added eight real generic CLI subprocess tests covering help/version, verified
+  download/provenance/cache corruption, interrupted/digest/size/HTTP failures,
+  source rejection, three archive formats/text errors, and marked cleanup with
+  dry-run/apply/repetition/link safety/all-rule preflight. The initial cleanup
+  test expected the wrong diagnostic wording; corrected the test, not production.
+- All 39 workspace tests and strict clippy pass after this slice. The adapter's
+  process contract, MSRV/static acceptance and whole-change review remain open.
