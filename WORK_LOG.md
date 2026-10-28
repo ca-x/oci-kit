@@ -42,3 +42,16 @@
 
 Source publishing and CI results are recorded only after their commands succeed.
 OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
+
+## 2026-10-28 — Source publication over SSH
+
+- The user explicitly requests SSH transport. Existing SSH configuration already
+  maps GitHub to `ssh.github.com:443`; authentication succeeds as `czyt` using
+  existing keys and known hosts. No SSH configuration or key changes are needed.
+- Changed this repository's origin to `git@github.com:ca-x/oci-kit.git` and pushed
+  initial source commit `2ef0ba1` to `main`; Git confirms the new remote branch and
+  configures `origin/main` tracking.
+- A missing ssh-agent did not mean that on-disk identities were unavailable;
+  inspect the existing SSH configuration before diagnosing authentication.
+- The earlier HTTPS failures do not block this SSH push. Remote CI and image
+  construction still require their own evidence; publication alone proves neither.
