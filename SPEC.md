@@ -1,6 +1,7 @@
 # oci-kit: boundaries and acceptance criteria
 
-Status: initial implementation, 2026-10-28. Target: Linux, Rust.
+Status: documented CLI completion gate passed, 2026-10-28. Accepted target:
+Linux x86-64, Rust 1.89+. Image/desktop acceptance remains separate.
 
 ## Components
 
@@ -9,7 +10,7 @@ Status: initial implementation, 2026-10-28. Target: Linux, Rust.
 | `rootfs-fetch` | Fetch an explicitly identified HTTPS artifact, verify SHA-256, atomically cache it | Pond/GitHub release discovery, a hard-coded distribution URL |
 | `rootfs-inspect` | Read a tar/tar.gz/tar.zst archive without extracting it; report paths and metadata | Package removal decisions or platform assumptions |
 | `rootfs-cleaner` | Plan or explicitly apply exact-path deletions in an offline staging directory | Distribution package lists, arbitrary hooks, package manager commands |
-| `lighos-init` | Install/run a LightOS post-setup hook, initially restoring extra Arch keyrings | Reimplementation of LightOS account/SSH setup, claiming platform neutrality |
+| `lighos-init` | Install/run a LightOS post-setup hook restoring configured extra Arch keyrings | Reimplementation of LightOS account/SSH setup, claiming platform neutrality |
 
 `lighos-init` preserves the spelling explicitly requested by the user. There is
 no binary named `rootfs-init`. That name is reserved until a platform-independent
@@ -67,9 +68,9 @@ versioned, non-secret profile and completion state. Failed operations leave no
 success marker. SSH remains owned by LightOS unless explicitly redesigned.
 Pond's ISO installer SSH patch does not modify its released rootfs.
 
-Initially the adapter only restores configured pacman keyrings. Desktop VT,
+The schema-v1 adapter restores configured pacman keyrings. Desktop VT,
 PAM/logind and a Pond/Niri session require separate target-platform validation;
-this first implementation must not advertise them as completed.
+CLI completion does not advertise those separate targets as completed.
 
 `apply` without `--apply` emits one JSON plan and performs no initialization.
 Explicit application emits one JSON document with `changed` only after success;

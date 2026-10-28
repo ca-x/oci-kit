@@ -45,8 +45,17 @@ acceptance. No real seed, password, SSH key or host keyring is used in tests.
   source revision. The workflow uploads no rootfs or image.
 - Independent whole-change review must have no unresolved important finding.
 
-CI publication and whole-change review are pending at this snapshot. Do not
-interpret the local matrix as permission to start image packaging yet.
+The CLI gate passed on code/workflow revision
+`cbf327f0fa20b4e87b491b14aeed373f20cf223b`: GitHub run `40662397249` completed
+`rust`, `msrv` and `static-runtime` successfully, including all 44 Rust tests
+on each required test build and all 14 chroot runtime cases. An independent
+whole-change review of this revision found no Critical/Important/Minor defect,
+re-ran the native tests, static execution checks and 14 bubblewrap cases, and
+closed both earlier initialization findings. Later documentation-only evidence
+updates do not change these reviewed binaries or workflow definitions.
+
+Pond packaging may begin as the next phase. It did not run while this gate was
+open, and the successful CLI gate does not claim an image or a boot has passed.
 
 ## Reproduction
 

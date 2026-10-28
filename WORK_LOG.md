@@ -142,3 +142,28 @@ OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
   bare shim initially had no selected version, so no global mise setting was
   changed. Shell syntax and fixture Rust formatting also pass.
 - Remote CI on these new gates and the fresh whole-change review remain pending.
+
+## 2026-10-28 — CLI completion accepted
+
+- Static/MSRV phase `cbf327f0fa20b4e87b491b14aeed373f20cf223b` is pushed over SSH.
+  GitHub run `40662397249` is successful; inspected the individual jobs and logs:
+  `rust`, `msrv` and `static-runtime` all succeeded. Stable/native, Rust 1.89 and
+  musl release each passed 44 Rust tests; static checks executed all four
+  binaries; the disposable chroot ran all 14 initializer cases successfully.
+- Fresh independent whole-change review of baseline `f7b5f12` through `cbf327f`
+  reports no Critical/Important/Minor finding. It re-ran 44 native tests, strict
+  clippy/formatting, 14 bubblewrap cases and all four static binary checks.
+  Additional temporary probes rejected writable ancestors, differently owned
+  state, Unix sockets and oversized state. No source/index/host setup changed.
+- Both important contract-audit findings are independently closed. The evidence
+  matrix now closes every documented CLI function and states the remaining
+  platform/external-command limits. Completion is not inferred from source-only
+  CI, a cross-link, or a reviewer that could not start.
+- All four tasks in `docs/superpowers/plans/2026-10-28-cli-completion.md` are
+  complete. Image packaging is now eligible as the next phase; no image/rootfs
+  publishing or Pond build happened before this acceptance. The accepted scope
+  excludes unimplemented generic account/locale features and physical desktop
+  claims rather than pretending that they work.
+- Removed only the empty nested directory left by the earlier wrong-CWD patch;
+  it contained no files. The final review slot is closed and its workspace can
+  be removed after this durable log is saved.
