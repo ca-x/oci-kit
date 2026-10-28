@@ -1,5 +1,18 @@
 # Work log
 
+## 2026-10-28 — GitHub-only execution policy
+
+- The user now requires all downloads and builds on GitHub. From this point,
+  dependency/rootfs downloads, Rust compilation and runtime acceptance run only
+  in GitHub Actions. Local work is limited to source editing, static review,
+  SSH source pushes and workflow/log inspection; no artifact download is needed.
+- Documented remote workflow dispatch without adding GitHub-specific behavior
+  to the reusable CLI mechanisms. Earlier local evidence remains historical;
+  it does not authorize further local builds or downloads.
+- Confirmed the completed CLI gate's documentation head `daaf572` also passes
+  all three GitHub CI jobs in run `40663154259`, after the source/runtime gate
+  at `cbf327f` passed run `40662397249`.
+
 ## 2026-10-28 — Initial implementation
 
 - Fixed the domain boundary before implementation: generic fetch/inspect/clean,

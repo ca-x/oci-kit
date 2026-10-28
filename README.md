@@ -25,8 +25,19 @@ Pond 最新版本解析、清理清单和 Dockerfile 属于独立的 `dockers-x/
 
 ## 构建与验证
 
+本项目的下载、依赖安装、编译与运行验收统一在 **GitHub Actions** 完成；
+本地只编辑和审阅源码、通过 SSH 推送以及查看工作流状态，不下载 rootfs 或构建产物。
+这是项目执行策略，不是通用 CLI 对运行环境的限制。
+推送会触发全部验证，也可以只触发远程验证：
+
+```sh
+gh workflow run ci.yml --repo ca-x/oci-kit --ref main
+gh run list --repo ca-x/oci-kit --workflow ci.yml
+```
+
 Linux，最低 Rust 1.89；stable 及最低版本都纳入验证。C 编译器用于依赖的构建。
 离线 staging 操作要求 Linux 5.6+、可用的 `openat2` 和 `/proc`；不提供降级到不安全路径解析的 fallback。
+下列构建、测试和各 CLI 示例用于 Actions runner 或其中的隔离环境，不在本机执行：
 
 ```sh
 cargo build --locked --release --workspace --bins
