@@ -71,6 +71,21 @@ Initially the adapter only restores configured pacman keyrings. Desktop VT,
 PAM/logind and a Pond/Niri session require separate target-platform validation;
 this first implementation must not advertise them as completed.
 
+`apply` without `--apply` emits one JSON plan and performs no initialization.
+Explicit application emits one JSON document with `changed` only after success;
+errors have a nonzero exit and no success document. Child-command diagnostics
+go to stderr, never contaminate JSON stdout. Installation remains an offline
+operation that neither starts systemd nor runs programs inside the staging root.
+
+All keyring files are preflighted before changes. Each is explicitly imported
+with `pacman-key --add` (which propagates import errors), then populated; a bare
+`--populate` exit status cannot prove that its import step succeeded. Runtime
+state ancestors must be root-owned, non-symlink directories without group/world
+write access. Lock/state files must be regular, root-controlled files; reject
+links and special files before opening for I/O. Trusted root processes must not
+concurrently replace these directories/files. The lock coordinates cooperating
+initializers, not a hostile root process.
+
 ## Verification
 
 - `cargo fmt --all -- --check`

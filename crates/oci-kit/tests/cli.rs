@@ -289,6 +289,54 @@ fn inspect_text_failures_have_nonzero_exit_and_no_success_report() {
     }
 }
 
+#[test]
+fn inspect_reports_links_devices_and_fifos_without_following_or_creating_them() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("special.tar");
+    let mut builder = tar::Builder::new(Vec::new());
+    for (name, kind, target) in [
+        ("link", tar::EntryType::Symlink, Some("/outside")),
+        ("hardlink", tar::EntryType::Link, Some("link")),
+        ("device", tar::EntryType::Char, None),
+        ("fifo", tar::EntryType::Fifo, None),
+    ] {
+        let mut header = tar::Header::new_gnu();
+        header.set_entry_type(kind);
+        header.set_mode(0o600);
+        header.set_uid(0);
+        header.set_gid(0);
+        header.set_size(0);
+        if let Some(target) = target {
+            header.set_link_name(target).unwrap();
+        }
+        header.set_cksum();
+        builder.append_data(&mut header, name, &[][..]).unwrap();
+    }
+    fs::write(&path, builder.into_inner().unwrap()).unwrap();
+    let report = success(
+        Command::new(INSPECT)
+            .arg("--archive")
+            .arg(&path)
+            .args(["--select", "."])
+            .output()
+            .unwrap(),
+    );
+    for kind in ["symlink", "hardlink", "device", "fifo"] {
+        assert_eq!(report["kinds"][kind], 1);
+    }
+    assert_eq!(report["selected"][0]["link_target"], "/outside");
+    failure(
+        Command::new(INSPECT)
+            .arg("--archive")
+            .arg(&path)
+            .args(["--text", "link"])
+            .output()
+            .unwrap(),
+        "not a regular file",
+    );
+    assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
+}
+
 fn clean(root: &Path, policy: &Path, apply: bool) -> Output {
     let mut command = Command::new(CLEANER);
     command

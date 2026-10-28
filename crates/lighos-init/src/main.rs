@@ -3,7 +3,16 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use lighos_init::{Profile, apply, install, plan};
+use lighos_init::{InitPlan, Profile, apply, install, plan};
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct ApplyResult {
+    #[serde(flatten)]
+    plan: InitPlan,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    changed: Option<bool>,
+}
 
 #[derive(Parser)]
 #[command(
@@ -46,13 +55,12 @@ fn main() -> Result<()> {
             apply: should_apply,
         } => {
             let profile = Profile::parse(&fs::read_to_string(config)?)?;
+            let plan = plan(&profile, should_apply)?;
+            let changed = should_apply.then(|| apply(&profile)).transpose()?;
             println!(
                 "{}",
-                serde_json::to_string_pretty(&plan(&profile, should_apply)?)?
+                serde_json::to_string_pretty(&ApplyResult { plan, changed })?
             );
-            if should_apply {
-                println!("changed={}", apply(&profile)?);
-            }
         }
     }
     Ok(())

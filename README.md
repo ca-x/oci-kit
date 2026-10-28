@@ -127,9 +127,15 @@ lighos-init apply --config /etc/oci-kit/lightos.toml
 `apply` 默认仍是计划；实际首次启动的 unit 添加 `--apply`。
 它要求 root 身份和 `/var/lib/lightos/initialized`，在 `lightos-setup.service` 之后运行，
 不替换平台注入脚本，不读取 seed、不创建重复账号、不接管 SSH。
-成功状态包含工具版本与规范化配置指纹；失败不写成功状态；相同配置重启跳过。
+成功状态保存由工具版本与序列化配置计算的指纹；失败不写成功状态；相同配置重启跳过。
 运行时文件锁阻止并发初始化。需要手动恢复 keyring 时，应先处理失败原因，
 再由管理员删除 kit 自身的完成状态；不要删除 LightOS 的账号完成状态来冒险重建账号。
+
+`apply` 的 stdout 始终是单个 JSON 文档；显式应用成功后增加 `changed`，失败不输出成功文档。
+子命令输出走 stderr。先检查全部 keyring 文件，再逐个 `pacman-key --add` 并 `--populate`，
+避免 populate 内部导入失败但仍返回零时错误写入成功状态。
+运行时状态目录及其祖先须由 root 控制且不能被普通用户写入；拒绝 symlink、FIFO、设备等状态/锁文件。
+锁用于协调工具实例，不防御拥有 root 权限的进程恶意替换状态目录或文件。
 
 **尚未声明完成：**通用账号/locale 配置、其他平台 adapter、Pond/Niri 物理桌面、VT/PAM/logind 验收。
 工具测试通过不等于这些场景已经通过平台启动验证。

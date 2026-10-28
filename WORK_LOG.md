@@ -80,3 +80,47 @@ OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
   test expected the wrong diagnostic wording; corrected the test, not production.
 - All 39 workspace tests and strict clippy pass after this slice. The adapter's
   process contract, MSRV/static acceptance and whole-change review remain open.
+
+## 2026-10-28 — Initialization runtime acceptance
+
+- Generic CLI phase `a15b20c` is pushed over SSH; its source CI run
+  `40659011161` succeeded. Pond packaging remains untouched.
+- Added four adapter subprocess tests for help/version, deterministic dry-run,
+  profile rejection, root refusal and repeatable offline installation of the
+  actual executable/profile/unit/enable link. Observed explicit failure emitting
+  a success plan, then changed application to emit one JSON result only after
+  success, with `changed`; failure stdout is empty.
+- Built real musl binaries locally using the installed Zig compiler and Rust's
+  self-contained linker. Direct `zig cc` initially failed because cc-rs supplied
+  a Rust target triple; a disposable workspace wrapper translates that argument.
+  This is a local toolchain workaround, not a production dependency; CI uses
+  musl-gcc. No GNU compiler is passed off as a musl compiler.
+- Added a static, non-GPG pacman-key fixture and a process harness that uses
+  rootless bubblewrap on this host, or disposable chroot on CI. It runs the real
+  initializer as namespace root, mutating only disposable roots with fixture
+  credentials. It does not change host system configuration/services, execute
+  Pond rootfs programs, or perform network operations. Chroot is a trusted-code
+  test harness, not a sandbox for hostile root programs.
+- The first eight runtime checks caught child stdout contaminating JSON on
+  success and failure. Observed failures, redirected child stdout to stderr,
+  then re-ran the real static CLI successfully.
+- Independent read-only contract audit confirms that account/seed/SSH lifecycle
+  remains platform-owned, and that keyring is the specified adapter action, not
+  complete desktop initialization. The audit found two important issues.
+- Confirmed in the installed pacman-key source that populate can ignore import
+  failure while `--add` propagates it. A failing-import/successful-populate fixture
+  reproduced a false success state. Now explicitly add each preflighted keyring
+  before populate; failures do not commit state.
+- Observed unsafe state directory/link acceptance and blocking FIFO state reads.
+  Now pin and validate root-controlled state ancestors, reject symlink/special
+  lock/state files before I/O, bound state reads, use nonblocking no-follow opens,
+  and sync the state directory after atomic replacement. Hostile concurrent root
+  processes are outside the cooperative-lock contract.
+- All 14 isolated real-CLI runtime cases pass, including failure retry, changed
+  profiles, unchanged-run idempotence, real process lock contention, corrupted
+  state, failed import, unsafe modes, symlinks and FIFO rejection. Added a ninth
+  generic process case for links/devices/FIFOs without extraction. Its first tar
+  fixture omitted UID/GID; fixed that invalid fixture, not production parsing.
+- Full local workspace verification now covers 44 Rust tests. A fresh whole-code
+  review and CI MSRV/static gates are still pending; this is not yet permission
+  to begin image packaging.

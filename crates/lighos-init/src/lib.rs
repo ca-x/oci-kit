@@ -1,10 +1,13 @@
-use std::fs;
-use std::io::Write;
+use std::fs::{self, File, Metadata};
+use std::io::{Read, Write};
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::process::Command;
 
 use anyhow::{Context, Result, ensure};
 use oci_kit::staging::StagingRoot;
+use rustix::fs::{self as sys, Mode, OFlags, ResolveFlags};
+use rustix::io::Errno;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tempfile::NamedTempFile;
@@ -101,14 +104,94 @@ pub fn apply(profile: &Profile) -> Result<bool> {
         "LightOS initialization requires root"
     );
     apply_at(Path::new("/"), profile, |keyring| {
-        let status = Command::new("/usr/bin/pacman-key")
-            .args(["--populate", keyring])
-            .env("PATH", "/usr/bin:/usr/sbin")
-            .status()
-            .context("running pacman-key")?;
-        ensure!(status.success(), "pacman-key failed for {keyring}");
+        let keyfile = format!("/usr/share/pacman/keyrings/{keyring}.gpg");
+        for arguments in [["--add", keyfile.as_str()], ["--populate", keyring]] {
+            let status = Command::new("/usr/bin/pacman-key")
+                .args(arguments)
+                .env("PATH", "/usr/bin:/usr/sbin")
+                .stdout(std::io::stderr())
+                .status()
+                .context("running pacman-key")?;
+            ensure!(
+                status.success(),
+                "pacman-key failed for {keyring} ({})",
+                arguments[0]
+            );
+        }
         Ok(())
     })
+}
+
+fn trusted_metadata(metadata: &Metadata) -> Result<()> {
+    ensure!(
+        metadata.uid() == rustix::process::geteuid().as_raw() && metadata.mode() & 0o022 == 0,
+        "initialization state must be owned by the runtime user and not group/world-writable"
+    );
+    Ok(())
+}
+
+fn open_state_directory(root: &Path) -> Result<File> {
+    let mut directory = File::from(
+        sys::openat2(
+            sys::CWD,
+            root,
+            OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+            Mode::empty(),
+            ResolveFlags::NO_SYMLINKS | ResolveFlags::NO_MAGICLINKS,
+        )
+        .context("opening initialization state root")?,
+    );
+    trusted_metadata(&directory.metadata()?)?;
+    for component in Path::new(STATE_DIRECTORY.trim_start_matches('/')).components() {
+        match sys::mkdirat(&directory, component.as_os_str(), Mode::RWXU) {
+            Ok(()) | Err(Errno::EXIST) => {}
+            Err(error) => return Err(error.into()),
+        }
+        directory = File::from(
+            sys::openat(
+                &directory,
+                component.as_os_str(),
+                OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+            .context("opening trusted initialization state directory")?,
+        );
+        trusted_metadata(&directory.metadata()?)?;
+    }
+    Ok(directory)
+}
+
+fn open_state_file(directory: &File, name: &str, flags: OFlags) -> Result<File> {
+    match sys::openat(
+        directory,
+        name,
+        OFlags::PATH | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        Mode::empty(),
+    ) {
+        Ok(descriptor) => {
+            let metadata = File::from(descriptor).metadata()?;
+            ensure!(
+                metadata.is_file(),
+                "initialization state and lock must be a regular file"
+            );
+            trusted_metadata(&metadata)?;
+        }
+        Err(Errno::NOENT) => {}
+        Err(error) => return Err(error.into()),
+    }
+    let file = File::from(sys::openat(
+        directory,
+        name,
+        flags | OFlags::CLOEXEC | OFlags::NOFOLLOW | OFlags::NONBLOCK,
+        Mode::RUSR | Mode::WUSR,
+    )?);
+    let metadata = file.metadata()?;
+    ensure!(
+        metadata.is_file(),
+        "initialization state and lock must be a regular file"
+    );
+    trusted_metadata(&metadata)?;
+    Ok(file)
 }
 
 fn apply_at(
@@ -123,18 +206,20 @@ fn apply_at(
         platform_marker.is_file(),
         "LightOS account setup has not completed; refusing to apply"
     );
-    fs::create_dir_all(&state_directory)?;
-    let lock = fs::OpenOptions::new()
-        .create(true)
-        .truncate(false)
-        .read(true)
-        .write(true)
-        .open(state_directory.join("lightos-init.lock"))?;
+    let directory = open_state_directory(root)?;
+    let lock = open_state_file(
+        &directory,
+        "lightos-init.lock",
+        OFlags::RDWR | OFlags::CREATE,
+    )?;
     lock.try_lock()
         .context("another LightOS initialization is running")?;
     let fingerprint = profile.fingerprint()?;
-    match fs::read_to_string(&state_file) {
-        Ok(state) => {
+    match open_state_file(&directory, "lightos-init.json", OFlags::RDONLY) {
+        Ok(file) => {
+            let mut state = String::new();
+            file.take(4097).read_to_string(&mut state)?;
+            ensure!(state.len() <= 4096, "initialization state exceeds limit");
             let state: State =
                 serde_json::from_str(&state).context("invalid initialization state")?;
             ensure!(
@@ -145,8 +230,8 @@ fn apply_at(
                 return Ok(false);
             }
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error.into()),
+        Err(error) if error.downcast_ref::<Errno>() == Some(&Errno::NOENT) => {}
+        Err(error) => return Err(error),
     }
     for keyring in &profile.pacman_keyrings {
         let path = root.join(format!("usr/share/pacman/keyrings/{keyring}.gpg"));
@@ -169,6 +254,7 @@ fn apply_at(
     temporary.write_all(b"\n")?;
     temporary.as_file().sync_all()?;
     temporary.persist(state_file).map_err(|error| error.error)?;
+    directory.sync_all()?;
     Ok(true)
 }
 
