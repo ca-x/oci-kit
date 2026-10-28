@@ -9,6 +9,10 @@
 - Retrieved the LightOS lifecycle, seed-injection and remote-authentication
   memories again. Keep platform-owned accounts and authentication unchanged;
   a remote graphical session does not require a physical VT.
+- Full run `40678793875` passed. Independent review nevertheless found prefix
+  and template drop-in names bypassing the concrete-service restriction, plus
+  stale owned drop-ins surviving a profile change. Add public-CLI regressions
+  for both before changing the implementation; observe their RED in Actions.
 
 ## 2026-10-28 — GitHub-only execution policy
 
