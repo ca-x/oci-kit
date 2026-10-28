@@ -1,0 +1,14 @@
+[Unit]
+Description=oci-kit LightOS post-setup adapter
+Requires=lightos-setup.service
+After=lightos-setup.service
+ConditionPathExists=/var/lib/lightos/initialized
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/lighos-init apply --config /etc/oci-kit/lightos.toml --apply
+RemainAfterExit=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
