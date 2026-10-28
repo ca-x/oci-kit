@@ -124,3 +124,21 @@ OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
 - Full local workspace verification now covers 44 Rust tests. A fresh whole-code
   review and CI MSRV/static gates are still pending; this is not yet permission
   to begin image packaging.
+
+## 2026-10-28 — MSRV and static acceptance gates
+
+- Initialization phase `2052285` is committed and pushed over SSH.
+- Installed Rust 1.89.0 without changing the default toolchain. The locked
+  workspace tests pass on the declared minimum; musl release tests also run on
+  1.89.0, including all real CLI subprocess interfaces.
+- All four 1.89.0 musl binaries pass readelf checks for no INTERP/NEEDED entries
+  and execute help/version. Their actual initializer and a 1.89.0 static fixture
+  pass all 14 rootless isolated runtime tests. This is execution evidence, not
+  merely a successful cross-link.
+- Added CI jobs for MSRV tests, full musl release tests, linkage/execution checks
+  and real initializer chroot acceptance. No image/rootfs/artifact upload step
+  is added. Added `docs/cli-acceptance.md` as the per-command evidence/limit matrix.
+- Workflow syntax passes actionlint 1.7.7 from its existing installation; the
+  bare shim initially had no selected version, so no global mise setting was
+  changed. Shell syntax and fixture Rust formatting also pass.
+- Remote CI on these new gates and the fresh whole-change review remain pending.

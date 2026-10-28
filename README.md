@@ -25,7 +25,7 @@ Pond 最新版本解析、清理清单和 Dockerfile 属于独立的 `dockers-x/
 
 ## 构建与验证
 
-Linux，Rust stable；本次验证使用 Rust 1.99.1。C 编译器用于依赖的构建。
+Linux，最低 Rust 1.89；stable 及最低版本都纳入验证。C 编译器用于依赖的构建。
 离线 staging 操作要求 Linux 5.6+、可用的 `openat2` 和 `/proc`；不提供降级到不安全路径解析的 fallback。
 
 ```sh
@@ -38,6 +38,9 @@ cargo doc --locked --workspace --no-deps
 
 产物在 `target/release/`。将工具复制到其他发行版前，检查 libc 兼容性；
 镜像配方使用 Alpine Rust builder 编译 musl 静态版本，不能直接假设本机 GNU 产物可运行。
+CI 分别验证 stable、Rust 1.89 和 Linux x86-64 musl release：检查 ELF 无动态加载器/共享库依赖，
+执行真实 CLI 测试，并在临时 root 中验收初始化。静态构建命令、逐功能证据与边界见
+`docs/cli-acceptance.md`；不能把这套工具验收等同于镜像或桌面启动验收。
 
 ## rootfs-fetch
 
