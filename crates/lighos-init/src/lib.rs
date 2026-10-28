@@ -1,4 +1,5 @@
 use std::fs::{self, File, Metadata};
+use std::collections::BTreeSet;
 use std::io::{Read, Write};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -23,6 +24,8 @@ pub struct Profile {
     pub schema_version: u32,
     #[serde(default)]
     pub pacman_keyrings: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub post_setup_services: Vec<String>,
 }
 
 impl Profile {
@@ -44,6 +47,31 @@ impl Profile {
                 "invalid pacman keyring name"
             );
         }
+        ensure!(
+            profile.post_setup_services.len() <= 32,
+            "too many platform services"
+        );
+        let mut services = BTreeSet::new();
+        for name in &profile.post_setup_services {
+            ensure!(
+                name.ends_with(".service")
+                    && name.len() > ".service".len()
+                    && name.len() <= 128
+                    && name
+                        .bytes()
+                        .next()
+                        .is_some_and(|byte| byte.is_ascii_alphanumeric())
+                    && name
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || b"_.-@".contains(&byte)),
+                "invalid platform service name"
+            );
+            ensure!(
+                !matches!(name.as_str(), "lighos-init.service" | "lightos-setup.service"),
+                "platform service creates an initialization dependency cycle"
+            );
+            ensure!(services.insert(name), "duplicate platform service");
+        }
         Ok(profile)
     }
 
@@ -61,6 +89,8 @@ pub struct InitPlan {
     pub fingerprint: String,
     pub after: &'static str,
     pub pacman_keyrings: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub post_setup_services: Vec<String>,
     pub apply: bool,
 }
 
@@ -70,6 +100,7 @@ pub fn plan(profile: &Profile, apply: bool) -> Result<InitPlan> {
         fingerprint: profile.fingerprint()?,
         after: PLATFORM_MARKER,
         pacman_keyrings: profile.pacman_keyrings.clone(),
+        post_setup_services: profile.post_setup_services.clone(),
         apply,
     })
 }
@@ -91,6 +122,15 @@ pub fn install(root: &Path, profile: &Profile, binary: &Path) -> Result<()> {
         UNIT.as_bytes(),
         0o644,
     )?;
+    for name in &profile.post_setup_services {
+        root.write_file(
+            &std::path::PathBuf::from(format!(
+                "etc/systemd/system/{name}.d/20-oci-kit-post-setup.conf"
+            )),
+            b"[Unit]\nRequires=lighos-init.service\nAfter=lighos-init.service\n",
+            0o644,
+        )?;
+    }
     root.symlink(
         Path::new("etc/systemd/system/multi-user.target.wants/lighos-init.service"),
         Path::new("../lighos-init.service"),

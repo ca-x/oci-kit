@@ -198,3 +198,13 @@ OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
 - Added real offline CLI installation regressions and invalid-unit cases before
   production changes. All executable tests remain GitHub-only. This reopens,
   not silently closes, the original toolkit completion gate.
+- Run `40676051140` observed the new valid-profile CLI installation fail in
+  MSRV and static-musl tests, before the feature existed. The formatter also
+  requested two test layout changes; use that runner-produced diff locally
+  without executing rustfmt here. Tightened negative tests to require the
+  platform-service validation diagnostic, not an unrelated absent-root error.
+- Implemented optional `post_setup_services`, validated names/count/duplicates
+  and obvious initialization cycles, and installed only ordering drop-ins.
+  Changed the marker Condition to Assert for fail-closed dependencies. Empty
+  lists are omitted from serialization to preserve original profile identity.
+  GitHub GREEN and independent review are pending; other desktop work stays open.

@@ -130,7 +130,7 @@ fn offline_install_copies_real_binary_profile_unit_and_enable_link_repeatably() 
     lighos_init::Profile::parse(&stored).unwrap();
     let unit = fs::read_to_string(root.join("etc/systemd/system/lighos-init.service")).unwrap();
     assert!(unit.contains("After=lightos-setup.service"));
-    assert!(unit.contains("ConditionPathExists=/var/lib/lightos/initialized"));
+    assert!(unit.contains("AssertPathExists=/var/lib/lightos/initialized"));
     assert!(!unit.contains("seed.env"));
     assert_eq!(
         fs::read_link(root.join("etc/systemd/system/multi-user.target.wants/lighos-init.service"))

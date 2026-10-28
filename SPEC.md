@@ -83,6 +83,14 @@ errors have a nonzero exit and no success document. Child-command diagnostics
 go to stderr, never contaminate JSON stdout. Installation remains an offline
 operation that neither starts systemd nor runs programs inside the staging root.
 
+`post_setup_services` optionally lists up to 32 concrete system services. Offline
+installation writes only toolkit-namespaced ordering drop-ins; it does not
+replace/enable/start the package-owned units or read platform credentials.
+The adapter's platform marker is an Assert, not a skippable Condition, so a
+dependent service cannot treat missing platform initialization as success.
+Reject unsafe names, duplicates and direct cycles through either initializer.
+An empty list preserves the original serialized profile and fingerprint shape.
+
 All keyring files are preflighted before changes. Each is explicitly imported
 with `pacman-key --add` (which propagates import errors), then populated; a bare
 `--populate` exit status cannot prove that its import step succeeded. Runtime

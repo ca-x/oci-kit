@@ -16,8 +16,11 @@ fn offline_install_orders_platform_desktop_units_without_activating_or_replacing
     fs::create_dir_all(root.join("usr/lib/systemd/system")).unwrap();
     fs::create_dir_all(root.join("etc/lightos")).unwrap();
     for name in units {
-        fs::write(root.join("usr/lib/systemd/system").join(name), "opaque package unit\n")
-            .unwrap();
+        fs::write(
+            root.join("usr/lib/systemd/system").join(name),
+            "opaque package unit\n",
+        )
+        .unwrap();
     }
     let environment = root.join("etc/lightos/remote-desktop.env");
     fs::write(&environment, "opaque platform-owned fixture\n").unwrap();
@@ -56,8 +59,7 @@ fn offline_install_orders_platform_desktop_units_without_activating_or_replacing
                     .exists()
             );
         }
-        let unit = fs::read_to_string(root.join("etc/systemd/system/lighos-init.service"))
-            .unwrap();
+        let unit = fs::read_to_string(root.join("etc/systemd/system/lighos-init.service")).unwrap();
         assert!(unit.contains("AssertPathExists=/var/lib/lightos/initialized"));
         assert!(!unit.contains("ConditionPathExists=/var/lib/lightos/initialized"));
         assert_eq!(
@@ -96,5 +98,6 @@ fn unsafe_recursive_and_duplicate_platform_unit_names_fail_before_installation()
             .unwrap();
         assert!(!output.status.success(), "accepted {names}");
         assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("platform service"));
     }
 }
