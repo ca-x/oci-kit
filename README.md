@@ -7,7 +7,7 @@
 | `rootfs-fetch` | 通用：URL + SHA-256 → 校验后的原子缓存；不负责发现发行版的最新版 |
 | `rootfs-inspect` | 通用：只读检查 tar / tar.gz / tar.zst，不解包、不执行内容 |
 | `rootfs-cleaner` | 通用：按外部策略清理离线 staging rootfs，默认只输出计划 |
-| `lighos-init` | **LightOS 专用**：安装独立的 post-setup hook，目前支持额外 Arch keyring 恢复 |
+| `lighos-init` | **LightOS 专用**：额外 Arch keyring 恢复、平台服务初始化顺序 |
 
 `lighos-init` 按用户指定的拼写命名，不提供名为 `rootfs-init` 的命令。
 未经跨平台实现与验证，不把 LightOS 初始化包装成“通用 rootfs 初始化”。
@@ -125,11 +125,15 @@ reason = "Downloaded artifacts are not runtime dependencies"
 ## lighos-init
 
 这是 `crates/lighos-init` 中的 LightOS adapter，不是通用初始化引擎。
-当前接口只支持非秘密的 `pacman_keyrings` 配置：
+当前接口支持非秘密的 `pacman_keyrings` 与可选 `post_setup_services` 配置：
 
 ```toml
 schema_version = 1
 pacman_keyrings = ["extra-repository-keyring"]
+post_setup_services = [
+    "lightos-remote-desktop.service",
+    "lightos-remote-desktop-session.service",
+]
 ```
 
 ```sh
@@ -138,6 +142,11 @@ lighos-init apply --config /etc/oci-kit/lightos.toml
 ```
 
 `install` 仅把自身、配置和 systemd unit 放入已标记 staging，不触及宿主服务。
+可选服务列表只添加 kit 命名空间的 `Requires/After=lighos-init.service` drop-in，
+不替换、启用或启动原服务，也不读取远程认证 env。平台完成标记使用 Assert，缺失时失败，
+不能把跳过 Condition 当作初始化成功。列表最多 32 个具体 service，拒绝前缀、模板和循环名称。
+配置重装只移除前一配置中已删除且内容完全匹配的 kit drop-in，保留其他配置与目录；
+修改过的文件、symlink 和特殊文件会阻止更新。安装配置最多 64 KiB，协调成功后才替换。
 `apply` 默认仍是计划；实际首次启动的 unit 添加 `--apply`。
 它要求 root 身份和 `/var/lib/lightos/initialized`，在 `lightos-setup.service` 之后运行，
 不替换平台注入脚本，不读取 seed、不创建重复账号、不接管 SSH。
@@ -151,7 +160,7 @@ lighos-init apply --config /etc/oci-kit/lightos.toml
 运行时状态目录及其祖先须由 root 控制且不能被普通用户写入；拒绝 symlink、FIFO、设备等状态/锁文件。
 锁用于协调工具实例，不防御拥有 root 权限的进程恶意替换状态目录或文件。
 
-**尚未声明完成：**通用账号/locale 配置、其他平台 adapter、Pond/Niri 物理桌面、VT/PAM/logind 验收。
+**尚未声明完成：**通用账号/locale 配置、其他平台 adapter、设备策略、Pond/Niri 远程桌面、可选物理 VT/PAM/logind 验收。
 工具测试通过不等于这些场景已经通过平台启动验证。
 
 ## 配方与协议

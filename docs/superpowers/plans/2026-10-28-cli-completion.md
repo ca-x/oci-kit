@@ -23,7 +23,7 @@ not dispatch the image workflow or change the Pond Dockerfile during this gate.
    in disposable fixtures with no host credentials or host service changes.
    Tool acceptance is not the Pond image project and publishes no rootfs/image.
 4. Obtain an independent whole-change review. Resolve important findings using
-   observed red-to-green tests, then run full local and CI gates. Record the
+   observed red-to-green tests, then run full GitHub Actions gates. Record the
    per-command acceptance matrix and platform limits. Only then may the next
    task start image packaging automatically.
 

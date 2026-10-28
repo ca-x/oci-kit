@@ -24,6 +24,11 @@
 - Fix run `40681691642` passed MSRV and static-runtime, including all four
   platform-service tests. Its stable job reported three formatting differences;
   apply exactly the runner diff and run the entire remote matrix again.
+- Exact `16083e02db95aeb74683e697a26458a5b9866e4f`, run `40682679574`, passed
+  rustfmt/clippy/tests/docs/build, Rust 1.89 and static-runtime acceptance.
+  Independent re-review closed both P2 findings and found no new P1/P2 in this
+  extension. Accept the ordering sub-gate only: device policy and native
+  Pond/Niri session support still keep the overall desktop gate open.
 
 ## 2026-10-28 — GitHub-only execution policy
 

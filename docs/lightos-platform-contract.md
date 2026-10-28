@@ -79,8 +79,10 @@ either result.
 
 ## Current implementation boundary
 
-The accepted original adapter handles keyrings only. The reopened extension
-gate first adds explicit service ordering without starting/enabling a service
-owned by the platform. Device preparation and real Pond/Niri session support
+The accepted adapter handles keyrings and explicit service ordering without
+starting/enabling a service owned by the platform. Commit `16083e0` passed full
+Actions `40682679574`; independent re-review closed prefix/template-name and
+stale-drop-in findings with observed process-level RED-to-GREEN evidence.
+Device preparation and real Pond/Niri session support
 must receive their own implementation and GitHub evidence before the image
 pipeline resumes. This document is not a claim that those features already run.

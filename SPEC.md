@@ -3,10 +3,10 @@
 Status: documented CLI completion gate passed, 2026-10-28. Accepted target:
 Linux x86-64, Rust 1.89+. Image/desktop acceptance remains separate.
 
-The desktop extension gate is reopened. The original keyring-only acceptance
-does not cover new platform-service ordering, device preparation or Pond/Niri
-startup. See `docs/lightos-platform-contract.md` for the retrieved platform
-ownership and authentication boundaries; keep packaging suspended meanwhile.
+The desktop extension gate remains open. Platform-service ordering is now
+independently accepted at `16083e0` (Actions `40682679574`); this does not cover
+device preparation or Pond/Niri startup. See `docs/lightos-platform-contract.md`
+for platform ownership and authentication boundaries; keep packaging suspended.
 
 ## Components
 
@@ -15,7 +15,7 @@ ownership and authentication boundaries; keep packaging suspended meanwhile.
 | `rootfs-fetch` | Fetch an explicitly identified HTTPS artifact, verify SHA-256, atomically cache it | Pond/GitHub release discovery, a hard-coded distribution URL |
 | `rootfs-inspect` | Read a tar/tar.gz/tar.zst archive without extracting it; report paths and metadata | Package removal decisions or platform assumptions |
 | `rootfs-cleaner` | Plan or explicitly apply exact-path deletions in an offline staging directory | Distribution package lists, arbitrary hooks, package manager commands |
-| `lighos-init` | Install/run a LightOS post-setup hook restoring configured extra Arch keyrings | Reimplementation of LightOS account/SSH setup, claiming platform neutrality |
+| `lighos-init` | Restore configured extra Arch keyrings and install explicit post-setup service ordering | Reimplementation of LightOS account/SSH setup, claiming platform neutrality |
 
 `lighos-init` preserves the spelling explicitly requested by the user. There is
 no binary named `rootfs-init`. That name is reserved until a platform-independent
