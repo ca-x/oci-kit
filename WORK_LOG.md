@@ -180,3 +180,21 @@ OCI construction and a real LightOS/Pond boot remain separate acceptance gates.
 - Removed only the empty nested directory left by the earlier wrong-CWD patch;
   it contained no files. The final review slot is closed and its workspace can
   be removed after this durable log is saved.
+
+## 2026-10-28 — Platform contract and reopened desktop gate
+
+- User requests further LightOS underlying-implementation memory retrieval.
+  Retrieved inner runc/outer core observations, three-stage seed/runtime config
+  injection, admin-proxy credential ownership and optional physical VT records.
+  Read only the current setup script, never the actual seed/auth environment.
+- Ruling: desktop does not imply a physical VT. vt=false remote instances must
+  still run a graphical desktop. Do not invent a registration API, bypass the
+  admin proxy or overwrite platform credentials. The Niri session still needs
+  real support; the remote program's Hyprland owner is not a substitute.
+- Documented those boundaries in `docs/lightos-platform-contract.md`. First
+  extension: explicitly order configured platform services after successful
+  post-setup initialization, without starting/enabling or replacing them. A
+  skipped systemd Condition is not a successful dependency readiness gate.
+- Added real offline CLI installation regressions and invalid-unit cases before
+  production changes. All executable tests remain GitHub-only. This reopens,
+  not silently closes, the original toolkit completion gate.

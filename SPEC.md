@@ -3,6 +3,11 @@
 Status: documented CLI completion gate passed, 2026-10-28. Accepted target:
 Linux x86-64, Rust 1.89+. Image/desktop acceptance remains separate.
 
+The desktop extension gate is reopened. The original keyring-only acceptance
+does not cover new platform-service ordering, device preparation or Pond/Niri
+startup. See `docs/lightos-platform-contract.md` for the retrieved platform
+ownership and authentication boundaries; keep packaging suspended meanwhile.
+
 ## Components
 
 | Binary | Responsibility | Must not contain |
