@@ -13,6 +13,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tempfile::NamedTempFile;
 
+mod render_groups;
+
+pub use render_groups::generate_systemd;
+
 const UNIT: &str = include_str!("../systemd/lighos-init.service");
 const STATE_DIRECTORY: &str = "/var/lib/oci-kit";
 const STATE_FILE: &str = "/var/lib/oci-kit/lightos-init.json";
@@ -30,6 +34,8 @@ pub struct Profile {
     pub pacman_keyrings: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub post_setup_services: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub render_node_services: Vec<String>,
 }
 
 impl Profile {
@@ -82,6 +88,13 @@ impl Profile {
             );
             ensure!(services.insert(name), "duplicate platform service");
         }
+        let mut recipients = BTreeSet::new();
+        for name in &profile.render_node_services {
+            ensure!(
+                profile.post_setup_services.contains(name) && recipients.insert(name),
+                "render node services must be unique post-setup recipients"
+            );
+        }
         Ok(profile)
     }
 
@@ -101,6 +114,8 @@ pub struct InitPlan {
     pub pacman_keyrings: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub post_setup_services: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub render_node_services: Vec<String>,
     pub apply: bool,
 }
 
@@ -111,6 +126,7 @@ pub fn plan(profile: &Profile, apply: bool) -> Result<InitPlan> {
         after: PLATFORM_MARKER,
         pacman_keyrings: profile.pacman_keyrings.clone(),
         post_setup_services: profile.post_setup_services.clone(),
+        render_node_services: profile.render_node_services.clone(),
         apply,
     })
 }
@@ -127,6 +143,10 @@ pub fn install(root: &Path, profile: &Profile, binary: &Path) -> Result<()> {
         Path::new("usr/local/bin/lighos-init"),
         &fs::read(binary)?,
         0o755,
+    )?;
+    root.symlink(
+        Path::new("usr/lib/systemd/system-generators/lighos-init-generator"),
+        Path::new("/usr/local/bin/lighos-init"),
     )?;
     root.write_file(
         Path::new("etc/systemd/system/lighos-init.service"),

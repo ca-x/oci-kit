@@ -1,5 +1,22 @@
 # Work log
 
+## 2026-10-28 — Explicit numeric render-node policy
+
+- Pond recipe wiring is independently accepted: RED `40710876277`, GREEN
+  `40713790188`, source `9b0d20e`, no P1/P2 review finding. Continue the next
+  independent CLI prerequisite, not persistent remoted-owner research.
+- Specify opt-in numeric render groups in the adapter and a systemd generator
+  symlink to the same Rust binary. No auth/account mutation, host device
+  chmod/chown, service start/enable or physical card/TTY grant is permitted.
+- Regression `ec36837` observed the intended install/profile RED in all three
+  GitHub jobs of `40715702736`; existing ordering tests still pass. Runtime
+  fixture cases are present but were not reached after that earlier failure.
+- Implement descriptor-pinned character-node inspection and ephemeral,
+  additive service group drop-ins. A missing mapped render node is a no-op;
+  malformed selected nodes are rejected before service policy is written.
+- All compilation, formatting and executable validation remain remote.
+  Source implementation is not yet accepted device or desktop behavior.
+
 ## 2026-10-28 — Desktop dependency gate remote verification
 
 - Run `40677322538` passed the minimum-Rust and static-runtime jobs, including

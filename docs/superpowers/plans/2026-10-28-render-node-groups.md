@@ -1,6 +1,6 @@
 # Explicit render-node groups without host device mutation
 
-Status: specification and process regressions first; implementation pending.
+Status: meaningful install/profile RED observed; implementation awaiting GREEN.
 
 ## Contract
 
@@ -15,7 +15,8 @@ Status: specification and process regressions first; implementation pending.
   a group-wide authorization, not an ACL limited to the individual device.
 - Install a `lighos-init-generator` symlink to the same Rust binary in the
   systemd system-generator directory. Dispatch its standard three-directory
-  invocation by executable name; write only the normal generator output.
+  invocation by executable name (also accept systemd's one-directory debug
+  convention); write only the normal generator output.
   No package-specific shell, new daemon or service activation is needed.
 - Read and pin the device directory and nodes without following symlinks.
   Accept only DRM major 226 and a minor matching the renderD suffix, with a
@@ -56,3 +57,8 @@ Status: specification and process regressions first; implementation pending.
   If generator-time mounts differ from the platform's final device mapping,
   no hotplug support is implied; platform reload and runtime acceptance remain.
 - All builds, fixture execution and dependency downloads stay on GitHub.
+- RED run `40715702736`, source `ec368373c9b44193e9280b92be38615b8bcf33d0`:
+  native, MSRV and musl process tests all reject the new valid profile with
+  `unknown field render_node_services`. The four prior ordering tests pass.
+  Those failures stop the later chroot step; generator runtime cases have not
+  yet executed and must pass after implementation.

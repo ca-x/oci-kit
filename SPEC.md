@@ -15,7 +15,7 @@ for platform ownership and authentication boundaries; keep packaging suspended.
 | `rootfs-fetch` | Fetch an explicitly identified HTTPS artifact, verify SHA-256, atomically cache it | Pond/GitHub release discovery, a hard-coded distribution URL |
 | `rootfs-inspect` | Read a tar/tar.gz/tar.zst archive without extracting it; report paths and metadata | Package removal decisions or platform assumptions |
 | `rootfs-cleaner` | Plan or explicitly apply exact-path deletions in an offline staging directory | Distribution package lists, arbitrary hooks, package manager commands |
-| `lighos-init` | Restore configured extra Arch keyrings and install explicit post-setup service ordering | Reimplementation of LightOS account/SSH setup, claiming platform neutrality |
+| `lighos-init` | Restore configured extra Arch keyrings, install explicit post-setup ordering and generate opt-in numeric render groups | Reimplementation of LightOS account/SSH setup, claiming platform neutrality |
 
 `lighos-init` preserves the spelling explicitly requested by the user. There is
 no binary named `rootfs-init`. That name is reserved until a platform-independent
@@ -76,6 +76,14 @@ Pond's ISO installer SSH patch does not modify its released rootfs.
 The schema-v1 adapter restores configured pacman keyrings. Desktop VT,
 PAM/logind and a Pond/Niri session require separate target-platform validation;
 CLI completion does not advertise those separate targets as completed.
+
+The optional `render_node_services` policy must be a unique subset of
+`post_setup_services`. Its systemd generator adds numeric supplementary groups
+from mapped DRM render character nodes; it does not grant card/input/TTY access
+or mutate device ownership/mode. Missing render nodes preserve the software
+graphics path. Generator output is ephemeral and does not restart already
+running services. See the render-node implementation plan for the open remote
+acceptance gate and the limits of synthetic-device fixtures.
 
 `apply` without `--apply` emits one JSON plan and performs no initialization.
 Explicit application emits one JSON document with `changed` only after success;

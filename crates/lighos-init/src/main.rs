@@ -1,9 +1,10 @@
 use std::fs;
-use std::path::PathBuf;
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use lighos_init::{InitPlan, Profile, apply, install, plan};
+use lighos_init::{InitPlan, Profile, apply, generate_systemd, install, plan};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -41,6 +42,11 @@ enum Command {
 }
 
 fn main() -> Result<()> {
+    let program = std::env::args_os().next().unwrap_or_default();
+    if Path::new(&program).file_name() == Some(OsStr::new("lighos-init-generator")) {
+        let arguments: Vec<_> = std::env::args_os().skip(1).map(PathBuf::from).collect();
+        return generate_systemd(&arguments);
+    }
     match Args::parse().command {
         Command::Install { root, config } => {
             let profile = Profile::parse(&fs::read_to_string(config)?)?;
