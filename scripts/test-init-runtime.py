@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -86,6 +87,122 @@ class InitRuntime(unittest.TestCase):
     def calls(self):
         path = self.root / "calls"
         return path.read_text().splitlines() if path.exists() else []
+
+    def generator_profile(self):
+        services = '["desktop.service", "transport.service"]'
+        self.config.write_text(
+            f"schema_version=1\npost_setup_services={services}\nrender_node_services={services}\n"
+        )
+
+    def run_generator(self):
+        generator = self.root / "usr/lib/systemd/system-generators/lighos-init-generator"
+        generator.parent.mkdir(parents=True, exist_ok=True)
+        if not generator.is_symlink():
+            generator.symlink_to("/usr/local/bin/lighos-init")
+        directories = [f"/run/systemd/generator{suffix}" for suffix in ("", ".early", ".late")]
+        for directory in directories:
+            (self.root / directory.lstrip("/")).mkdir(parents=True, exist_ok=True)
+        generator_path = "/" + generator.relative_to(self.root).as_posix()
+        command = self.command(apply=False)[:-2] + [generator_path] + directories
+        return subprocess.run(
+            command, capture_output=True, text=True, timeout=5,
+            env={**os.environ, "PATH": "/fixture-untrusted-path"},
+        )
+
+    def render_node(self, name="renderD128", gid=62001, major=226, minor=128):
+        if self.runner != "chroot":
+            self.skipTest("root-owned synthetic device nodes are exercised only in GitHub chroot fixtures")
+        directory = self.root / "dev/dri"
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / name
+        os.mknod(path, stat.S_IFCHR | 0o660, os.makedev(major, minor))
+        os.chown(path, 0, gid)
+        return path
+
+    def generator_files(self):
+        return sorted((self.root / "run/systemd/generator").rglob("*.conf"))
+
+    def test_generator_without_opt_in_does_not_probe_devices_or_write(self):
+        (self.root / "dev/dri").symlink_to("/missing-platform-devices")
+        result = self.run_generator()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(self.generator_files(), [])
+        self.assertEqual(self.calls(), [])
+
+    def test_generator_without_render_nodes_preserves_software_graphics(self):
+        self.generator_profile()
+        result = self.run_generator()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(self.generator_files(), [])
+        self.assertFalse(self.state.parent.exists())
+        self.assertEqual(self.seed.read_text(), "opaque-fixture-only\n")
+
+    def test_generator_uses_numeric_groups_for_both_services_without_device_io(self):
+        self.generator_profile()
+        nodes = [
+            self.render_node(),
+            self.render_node("renderD129", gid=62002, minor=129),
+            self.render_node("renderD130", gid=62001, minor=130),
+            self.render_node("card0", gid=63000, minor=0),
+        ]
+        before = [(path.stat().st_mode, path.stat().st_uid, path.stat().st_gid, path.stat().st_rdev) for path in nodes]
+        for attempt in range(2):
+            with self.subTest(attempt=attempt):
+                result = self.run_generator()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertEqual(len(self.generator_files()), 2)
+                for service in ("desktop.service", "transport.service"):
+                    path = self.root / f"run/systemd/generator/{service}.d/30-oci-kit-render-groups.conf"
+                    self.assertEqual(path.read_text(), "[Service]\nSupplementaryGroups=62001 62002\n")
+                    self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o644)
+        after = [(path.stat().st_mode, path.stat().st_uid, path.stat().st_gid, path.stat().st_rdev) for path in nodes]
+        self.assertEqual(before, after)
+        self.assertFalse((self.root / "etc/group").exists())
+        self.assertFalse(self.state.parent.exists())
+        self.assertEqual(self.calls(), [])
+
+    def test_generator_rejects_unsafe_render_nodes_before_writing(self):
+        self.generator_profile()
+        self.render_node()
+        candidate = self.root / "dev/dri/renderD129"
+        for condition in ("link", "regular", "fifo", "wrong-major", "wrong-minor", "root-group"):
+            with self.subTest(condition=condition):
+                if condition == "link":
+                    candidate.symlink_to("renderD128")
+                elif condition == "regular":
+                    candidate.write_text("not a device")
+                elif condition == "fifo":
+                    os.mkfifo(candidate)
+                else:
+                    self.render_node(
+                        "renderD129", gid=0 if condition == "root-group" else 62002,
+                        major=1 if condition == "wrong-major" else 226,
+                        minor=128 if condition == "wrong-minor" else 129,
+                    )
+                self.failure(self.run_generator(), "render node")
+                self.assertEqual(self.generator_files(), [])
+                candidate.unlink()
+
+    def test_generator_refuses_linked_output_directory_without_touching_target(self):
+        self.generator_profile()
+        self.render_node()
+        target = self.root / "outside"
+        target.mkdir()
+        output = self.root / "run/systemd/generator"
+        output.mkdir(parents=True)
+        (output / "desktop.service.d").symlink_to("/outside")
+        self.failure(self.run_generator(), "generator")
+        self.assertEqual(list(target.iterdir()), [])
+
+    def test_generator_rejects_recipients_without_post_setup_ordering(self):
+        for services in ('["desktop.service"]', '["../escape.service"]', '["lighos-init.service"]'):
+            with self.subTest(services=services):
+                self.config.write_text(f"schema_version=1\nrender_node_services={services}\n")
+                self.failure(self.run_generator(), "render node")
+                self.assertEqual(self.generator_files(), [])
 
     def test_plan_without_platform_marker_does_not_mutate(self):
         self.marker.unlink()

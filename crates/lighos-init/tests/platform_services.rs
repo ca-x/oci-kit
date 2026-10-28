@@ -4,6 +4,36 @@ use std::process::Command;
 const INIT: &str = env!("CARGO_BIN_EXE_lighos-init");
 
 #[test]
+fn offline_install_deploys_the_same_rust_binary_as_an_opt_in_device_generator() {
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().join("root");
+    fs::create_dir(&root).unwrap();
+    oci_kit::staging::mark(&root).unwrap();
+    let config = directory.path().join("profile.toml");
+    fs::write(
+        &config,
+        "schema_version=1\npost_setup_services=['desktop.service']\nrender_node_services=['desktop.service']\n",
+    )
+    .unwrap();
+    let output = Command::new(INIT)
+        .args(["install", "--root"])
+        .arg(&root)
+        .arg("--config")
+        .arg(&config)
+        .env("PATH", "/no-commands-during-offline-install")
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{:?}", output);
+    assert_eq!(
+        fs::read_link(root.join("usr/lib/systemd/system-generators/lighos-init-generator"))
+            .unwrap(),
+        std::path::Path::new("/usr/local/bin/lighos-init")
+    );
+    assert!(!root.join("run/systemd/generator").exists());
+    assert!(!root.join("dev").exists());
+}
+
+#[test]
 fn offline_install_orders_platform_desktop_units_without_activating_or_replacing_them() {
     let directory = tempfile::tempdir().unwrap();
     let root = directory.path().join("root");
