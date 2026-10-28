@@ -193,6 +193,27 @@ impl StagingRoot {
         kind_at(&directory, &name)
     }
 
+    pub fn read_file(&self, relative: &Path, limit: usize) -> Result<Option<Vec<u8>>> {
+        let Some((directory, name)) = self.parent(relative, false)? else {
+            return Ok(None);
+        };
+        let file = match open_child(&directory, Path::new(&name), OFlags::PATH) {
+            Ok(file) => file,
+            Err(Errno::NOENT) => return Ok(None),
+            Err(error) => return Err(error.into()),
+        };
+        let metadata = file.metadata()?;
+        ensure!(metadata.is_file(), "staged content must be a regular file");
+        let maximum = u64::try_from(limit)?;
+        ensure!(metadata.len() <= maximum, "staged content exceeds read limit");
+        let mut content = Vec::new();
+        File::open(proc_fd_path(&file))?
+            .take(maximum.checked_add(1).context("read limit overflow")?)
+            .read_to_end(&mut content)?;
+        ensure!(content.len() <= limit, "staged content exceeds read limit");
+        Ok(Some(content))
+    }
+
     pub fn remove(&self, relative: &Path) -> Result<()> {
         if let Some((directory, name)) = self.parent(relative, false)? {
             remove_entry(&directory, &name)?;

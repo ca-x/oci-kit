@@ -13,6 +13,14 @@
   and template drop-in names bypassing the concrete-service restriction, plus
   stale owned drop-ins surviving a profile change. Add public-CLI regressions
   for both before changing the implementation; observe their RED in Actions.
+- Run `40680435930`, MSRV job `122789498149`, observed all three new failures:
+  an accepted broad unit name reached the staging-root check, stale files
+  remained after A-to-B, and a modified stale file was accepted. The ordinary
+  repeated-install case still passed. Apply the two runner rustfmt changes too.
+- Reject prefix/template names and reconcile stale owned files before replacing
+  the profile. A bounded staging reader pins an O_PATH-verified regular inode
+  before data access, preserving the no-symlink/no-cross-mount boundary. Require
+  fresh remote GREEN and independent closure; do not resume image packaging.
 
 ## 2026-10-28 — GitHub-only execution policy
 

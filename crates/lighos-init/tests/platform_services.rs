@@ -137,7 +137,10 @@ fn reinstall_reconciles_only_owned_platform_drop_ins() {
         if names == "['first.service']" {
             fs::write(&unmanaged, "platform owns this\n").unwrap();
         }
-        assert_eq!(fs::read_to_string(unmanaged).unwrap(), "platform owns this\n");
+        assert_eq!(
+            fs::read_to_string(unmanaged).unwrap(),
+            "platform owns this\n"
+        );
     }
 }
 
@@ -177,7 +180,10 @@ fn reinstall_refuses_modified_or_symlinked_stale_drop_ins_before_replacing_the_p
         }
         fs::write(&config, "schema_version=1\npost_setup_services=[]\n").unwrap();
         let output = install();
-        assert!(!output.status.success(), "accepted {condition} stale drop-in");
+        assert!(
+            !output.status.success(),
+            "accepted {condition} stale drop-in"
+        );
         assert!(output.stdout.is_empty());
         assert_eq!(fs::read(&installed).unwrap(), previous);
         assert!(fs::symlink_metadata(&drop_in).is_ok());

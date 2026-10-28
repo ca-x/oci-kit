@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::fs::{self, File, Metadata};
 use std::io::{Read, Write};
 use std::os::unix::fs::MetadataExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result, ensure};
@@ -17,6 +17,10 @@ const UNIT: &str = include_str!("../systemd/lighos-init.service");
 const STATE_DIRECTORY: &str = "/var/lib/oci-kit";
 const STATE_FILE: &str = "/var/lib/oci-kit/lightos-init.json";
 const PLATFORM_MARKER: &str = "/var/lib/lightos/initialized";
+const PROFILE_PATH: &str = "etc/oci-kit/lightos.toml";
+const MAX_PROFILE_BYTES: usize = 65536;
+const POST_SETUP_DROP_IN: &str =
+    "[Unit]\nRequires=lighos-init.service\nAfter=lighos-init.service\n";
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -53,9 +57,13 @@ impl Profile {
         );
         let mut services = BTreeSet::new();
         for name in &profile.post_setup_services {
+            let stem = name.strip_suffix(".service");
             ensure!(
-                name.ends_with(".service")
-                    && name.len() > ".service".len()
+                stem.is_some_and(|stem| {
+                    !stem.is_empty()
+                        && !stem.ends_with(['-', '@'])
+                        && stem.bytes().filter(|byte| *byte == b'@').count() <= 1
+                })
                     && name.len() <= 128
                     && name
                         .bytes()
@@ -110,15 +118,16 @@ pub fn plan(profile: &Profile, apply: bool) -> Result<InitPlan> {
 
 pub fn install(root: &Path, profile: &Profile, binary: &Path) -> Result<()> {
     let root = StagingRoot::open(root)?;
+    let configuration = toml::to_string(profile)?;
+    ensure!(
+        configuration.len() <= MAX_PROFILE_BYTES,
+        "installed LightOS profile exceeds 64 KiB"
+    );
+    let obsolete = obsolete_service_drop_ins(&root, profile)?;
     root.write_file(
         Path::new("usr/local/bin/lighos-init"),
         &fs::read(binary)?,
         0o755,
-    )?;
-    root.write_file(
-        Path::new("etc/oci-kit/lightos.toml"),
-        toml::to_string(profile)?.as_bytes(),
-        0o644,
     )?;
     root.write_file(
         Path::new("etc/systemd/system/lighos-init.service"),
@@ -127,18 +136,46 @@ pub fn install(root: &Path, profile: &Profile, binary: &Path) -> Result<()> {
     )?;
     for name in &profile.post_setup_services {
         root.write_file(
-            &std::path::PathBuf::from(format!(
-                "etc/systemd/system/{name}.d/20-oci-kit-post-setup.conf"
-            )),
-            b"[Unit]\nRequires=lighos-init.service\nAfter=lighos-init.service\n",
+            &service_drop_in(name),
+            POST_SETUP_DROP_IN.as_bytes(),
             0o644,
         )?;
+    }
+    for path in obsolete {
+        root.remove(&path)?;
     }
     root.symlink(
         Path::new("etc/systemd/system/multi-user.target.wants/lighos-init.service"),
         Path::new("../lighos-init.service"),
     )?;
+    root.write_file(Path::new(PROFILE_PATH), configuration.as_bytes(), 0o644)?;
     Ok(())
+}
+
+fn service_drop_in(name: &str) -> PathBuf {
+    PathBuf::from(format!(
+        "etc/systemd/system/{name}.d/20-oci-kit-post-setup.conf"
+    ))
+}
+
+fn obsolete_service_drop_ins(root: &StagingRoot, profile: &Profile) -> Result<Vec<PathBuf>> {
+    let mut obsolete = Vec::new();
+    if let Some(bytes) = root.read_file(Path::new(PROFILE_PATH), MAX_PROFILE_BYTES)? {
+        let previous = Profile::parse(std::str::from_utf8(&bytes)?)?;
+        for name in previous.post_setup_services {
+            if !profile.post_setup_services.contains(&name) {
+                let path = service_drop_in(&name);
+                if let Some(content) = root.read_file(&path, POST_SETUP_DROP_IN.len())? {
+                    ensure!(
+                        content == POST_SETUP_DROP_IN.as_bytes(),
+                        "refusing to remove modified platform service drop-in"
+                    );
+                    obsolete.push(path);
+                }
+            }
+        }
+    }
+    Ok(obsolete)
 }
 
 pub fn apply(profile: &Profile) -> Result<bool> {

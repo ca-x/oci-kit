@@ -90,6 +90,13 @@ The adapter's platform marker is an Assert, not a skippable Condition, so a
 dependent service cannot treat missing platform initialization as success.
 Reject unsafe names, duplicates and direct cycles through either initializer.
 An empty list preserves the original serialized profile and fingerprint shape.
+Prefix drop-in names ending in `-.service`, template names ending in
+`@.service`, and multiple instance separators are not concrete services.
+Reinstallation reconciles removed services using the previous installed profile,
+removing only exact, unmodified toolkit-owned drop-ins. Other drop-ins and
+directories remain untouched. Modified, linked or special stale files fail
+before the profile changes. The installed profile is limited to 64 KiB and is
+replaced only after reconciliation, so an interrupted offline install can retry.
 
 All keyring files are preflighted before changes. Each is explicitly imported
 with `pacman-key --add` (which propagates import errors), then populated; a bare
