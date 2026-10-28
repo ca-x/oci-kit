@@ -63,8 +63,7 @@ impl Profile {
                     !stem.is_empty()
                         && !stem.ends_with(['-', '@'])
                         && stem.bytes().filter(|byte| *byte == b'@').count() <= 1
-                })
-                    && name.len() <= 128
+                }) && name.len() <= 128
                     && name
                         .bytes()
                         .next()
@@ -135,11 +134,7 @@ pub fn install(root: &Path, profile: &Profile, binary: &Path) -> Result<()> {
         0o644,
     )?;
     for name in &profile.post_setup_services {
-        root.write_file(
-            &service_drop_in(name),
-            POST_SETUP_DROP_IN.as_bytes(),
-            0o644,
-        )?;
+        root.write_file(&service_drop_in(name), POST_SETUP_DROP_IN.as_bytes(), 0o644)?;
     }
     for path in obsolete {
         root.remove(&path)?;

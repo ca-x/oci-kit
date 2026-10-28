@@ -21,6 +21,9 @@
   the profile. A bounded staging reader pins an O_PATH-verified regular inode
   before data access, preserving the no-symlink/no-cross-mount boundary. Require
   fresh remote GREEN and independent closure; do not resume image packaging.
+- Fix run `40681691642` passed MSRV and static-runtime, including all four
+  platform-service tests. Its stable job reported three formatting differences;
+  apply exactly the runner diff and run the entire remote matrix again.
 
 ## 2026-10-28 — GitHub-only execution policy
 

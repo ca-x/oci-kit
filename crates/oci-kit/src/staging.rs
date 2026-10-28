@@ -205,7 +205,10 @@ impl StagingRoot {
         let metadata = file.metadata()?;
         ensure!(metadata.is_file(), "staged content must be a regular file");
         let maximum = u64::try_from(limit)?;
-        ensure!(metadata.len() <= maximum, "staged content exceeds read limit");
+        ensure!(
+            metadata.len() <= maximum,
+            "staged content exceeds read limit"
+        );
         let mut content = Vec::new();
         File::open(proc_fd_path(&file))?
             .take(maximum.checked_add(1).context("read limit overflow")?)
