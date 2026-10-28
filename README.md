@@ -159,7 +159,8 @@ systemd 在启动/reload 时读取已映射 DRM render 字符节点的数字 GID
 generator 目录生成 additive `SupplementaryGroups=` drop-in，不改账号、group 数据库、
 设备权限或服务启用状态。没有 render 节点时不生成规则，允许软件渲染的图形桌面。
 数字 group 授权作用于该 GID 可访问的全部资源，不是单设备 ACL；只对明确选中的服务启用。
-不授予 card/input/TTY，不跟随节点/输出路径链接，不接受 root/无效 GID。
+不从 card/input/TTY 节点发现 GID；组的实际权限由平台映射决定。
+不跟随节点/输出路径链接，不接受 root/无效 GID。
 平台在生成之后才映射设备时需要重新加载；已运行进程不会凭空获得新 group，不能因此
 擅自重启持久桌面。生成文件由 systemd 清除并重建，不写 kit 成功状态或平台认证。
 `apply` 默认仍是计划；实际首次启动的 unit 添加 `--apply`。
@@ -175,7 +176,7 @@ generator 目录生成 additive `SupplementaryGroups=` drop-in，不改账号、
 运行时状态目录及其祖先须由 root 控制且不能被普通用户写入；拒绝 symlink、FIFO、设备等状态/锁文件。
 锁用于协调工具实例，不防御拥有 root 权限的进程恶意替换状态目录或文件。
 
-**尚未声明完成：**通用账号/locale 配置、其他平台 adapter、设备策略、Pond/Niri 远程桌面、可选物理 VT/PAM/logind 验收。
+**尚未声明完成：**通用账号/locale 配置、其他平台 adapter、实际进程/GPU 设备验收、Pond/Niri 远程桌面、可选物理 VT/PAM/logind 验收。
 工具测试通过不等于这些场景已经通过平台启动验证。
 
 ## 配方与协议

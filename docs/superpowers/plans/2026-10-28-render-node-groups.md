@@ -1,6 +1,6 @@
 # Explicit render-node groups without host device mutation
 
-Status: meaningful install/profile RED observed; implementation awaiting GREEN.
+Status: mechanism accepted at `30f7651`; actual GPU/platform acceptance pending.
 
 ## Contract
 
@@ -11,7 +11,7 @@ Status: meaningful install/profile RED observed; implementation awaiting GREEN.
 - Opt-in authorizes those exact service processes to the numeric groups of
   mapped `/dev/dri/renderD<number>` character devices. Do not infer a username
   from seed/auth, create accounts/groups, or chmod/chown a device. Do not grant
-  card/input/TTY access or name-based render/video groups. Group membership is
+  groups from card/input/TTY nodes or name-based render/video groups. Group membership is
   a group-wide authorization, not an ACL limited to the individual device.
 - Install a `lighos-init-generator` symlink to the same Rust binary in the
   systemd system-generator directory. Dispatch its standard three-directory
@@ -62,3 +62,17 @@ Status: meaningful install/profile RED observed; implementation awaiting GREEN.
   `unknown field render_node_services`. The four prior ordering tests pass.
   Those failures stop the later chroot step; generator runtime cases have not
   yet executed and must pass after implementation.
+- GREEN: complete run `40718742320` at
+  `30f76519e9d3c809c892fa1d71e1f8a23d87c577` passes stable, MSRV and static
+  runtime gates, including 49 Rust tests per required build and 20 isolated
+  chroot cases. The first implementation's `40717635975` had already passed
+  MSRV/static-runtime; only its runner-reported import order needed correction.
+- Final review: a fresh read-only reviewer found no P1/P2. Clarify the existing
+  group-wide contract: not discovering card/input/TTY groups is not absolute
+  isolation from same-GID resources. No new permission mechanism is implied.
+- Final: minor (deferred): separately opt in owner versus transport in the
+  generator fixture. The implementation already iterates only selected
+  services; present positive cases select both services.
+- Final: minor (deferred): lock down one-directory debugging and empty
+  early/late output with explicit assertions. Current source accepts one/three
+  arguments and writes only the normal directory.

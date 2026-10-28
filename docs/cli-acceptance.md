@@ -36,9 +36,11 @@ independent review. The Pond recipe's actual profile then passed source and
 real-toolkit installation in run `40713790188` at `9b0d20e`, including repeated
 installation with opaque platform settings present and absent.
 
-The numeric render-node generator extension is still awaiting full remote
-verification and review. Its meaningful schema/install RED is `40715702736`;
-see `docs/superpowers/plans/2026-10-28-render-node-groups.md`. The expanded
+The numeric render-node generator mechanism passed full remote run
+`40718742320` at `30f7651` and fresh review without P1/P2 after meaningful
+schema/install RED `40715702736`. The full run exercises 49 Rust tests per
+required build and 20 chroot cases. See
+`docs/superpowers/plans/2026-10-28-render-node-groups.md`. The expanded
 chroot harness uses synthetic device metadata only, never device I/O or host
 device chmod/chown. Generated group policy is not evidence that systemd has
 started both services with those credentials or that actual GPU rendering,

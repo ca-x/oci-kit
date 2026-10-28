@@ -83,6 +83,14 @@ The accepted adapter handles keyrings and explicit service ordering without
 starting/enabling a service owned by the platform. Commit `16083e0` passed full
 Actions `40682679574`; independent re-review closed prefix/template-name and
 stale-drop-in findings with observed process-level RED-to-GREEN evidence.
-Device preparation and real Pond/Niri session support
-must receive their own implementation and GitHub evidence before the image
-pipeline resumes. This document is not a claim that those features already run.
+The opt-in render-node group generator passed full GitHub run `40718742320`
+at `30f7651` and independent review. It inspects mapped DRM render character
+metadata and writes ephemeral additive numeric group policy for exactly the
+configured post-setup services, without opening devices for I/O. No account,
+auth, device mode/owner or service lifecycle is modified. It does not discover
+groups from card/input/TTY nodes; group-wide access can still include resources
+sharing the GID and is not a per-device isolation guarantee.
+
+Real systemd process credentials/GPU use and Pond/Niri session support still
+need platform evidence before the image pipeline resumes. Synthetic nodes and
+generated drop-ins do not claim that those target-platform features run.

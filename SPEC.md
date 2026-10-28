@@ -3,10 +3,11 @@
 Status: documented CLI completion gate passed, 2026-10-28. Accepted target:
 Linux x86-64, Rust 1.89+. Image/desktop acceptance remains separate.
 
-The desktop extension gate remains open. Platform-service ordering is now
-independently accepted at `16083e0` (Actions `40682679574`); this does not cover
-device preparation or Pond/Niri startup. See `docs/lightos-platform-contract.md`
-for platform ownership and authentication boundaries; keep packaging suspended.
+The desktop extension gate remains open. Platform-service ordering and the
+opt-in numeric render-group generator are independently accepted mechanisms;
+the latter passed Actions `40718742320` at `30f7651`. Generated group policy
+does not prove actual process credentials, GPU use or Pond/Niri startup. See
+`docs/lightos-platform-contract.md`; keep packaging suspended.
 
 ## Components
 
@@ -79,8 +80,10 @@ CLI completion does not advertise those separate targets as completed.
 
 The optional `render_node_services` policy must be a unique subset of
 `post_setup_services`. Its systemd generator adds numeric supplementary groups
-from mapped DRM render character nodes; it does not grant card/input/TTY access
-or mutate device ownership/mode. Missing render nodes preserve the software
+from mapped DRM render character nodes; it does not discover groups from
+card/input/TTY nodes or mutate device ownership/mode. Supplementary membership
+can access other resources sharing the GID; this is not a per-device ACL.
+Missing render nodes preserve the software
 graphics path. Generator output is ephemeral and does not restart already
 running services. See the render-node implementation plan for the open remote
 acceptance gate and the limits of synthetic-device fixtures.

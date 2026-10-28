@@ -19,6 +19,17 @@
 - Implementation run `40717635975` reports one formatting-only import-order
   difference in `main.rs`; apply the runner's exact edit and require a fresh
   full run. Do not infer whole-gate acceptance from successful sibling jobs.
+- GREEN: full run `40718742320`, source `30f7651`, passes stable, MSRV and
+  static/runtime gates: 49 Rust tests per required build and 20 chroot cases.
+- Final review: fresh read-only review found no P1/P2. Ruling: clarify the
+  group-wide permission boundary rather than imply per-device isolation;
+  same-GID resources may also be accessible, so an operator must explicitly
+  accept that group policy. No extra card/input/TTY groups are discovered.
+- Final: minor (deferred): independent owner-only/transport-only opt-in test.
+- Final: minor (deferred): single-output-directory and empty early/late tests.
+- The accepted mechanism can now be selected by the Pond profile. Actual
+  service credentials/GPU use, full Pond shell, persistent Niri owner and
+  platform proxy/optional VT acceptance remain open. No OCI build is resumed.
 
 ## 2026-10-28 — Desktop dependency gate remote verification
 
