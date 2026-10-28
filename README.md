@@ -125,12 +125,17 @@ reason = "Downloaded artifacts are not runtime dependencies"
 ## lighos-init
 
 这是 `crates/lighos-init` 中的 LightOS adapter，不是通用初始化引擎。
-当前接口支持非秘密的 `pacman_keyrings` 与可选 `post_setup_services` 配置：
+接口支持非秘密的 `pacman_keyrings`、可选 `post_setup_services`，以及显式设备授权
+`render_node_services`（新增 generator 的远程验收状态见 `docs/cli-acceptance.md`）：
 
 ```toml
 schema_version = 1
 pacman_keyrings = ["extra-repository-keyring"]
 post_setup_services = [
+    "lightos-remote-desktop.service",
+    "lightos-remote-desktop-session.service",
+]
+render_node_services = [
     "lightos-remote-desktop.service",
     "lightos-remote-desktop-session.service",
 ]
@@ -147,6 +152,16 @@ lighos-init apply --config /etc/oci-kit/lightos.toml
 不能把跳过 Condition 当作初始化成功。列表最多 32 个具体 service，拒绝前缀、模板和循环名称。
 配置重装只移除前一配置中已删除且内容完全匹配的 kit drop-in，保留其他配置与目录；
 修改过的文件、symlink 和特殊文件会阻止更新。安装配置最多 64 KiB，协调成功后才替换。
+`render_node_services` 默认空，必须是初始化排序列表的无重复子集；它授权给列出的
+service 进程，而非猜测平台用户名。安装同时放置 `lighos-init-generator` symlink，
+仍调用同一个 Rust 可执行文件，不使用额外初始化 shell。
+systemd 在启动/reload 时读取已映射 DRM render 字符节点的数字 GID，在 normal
+generator 目录生成 additive `SupplementaryGroups=` drop-in，不改账号、group 数据库、
+设备权限或服务启用状态。没有 render 节点时不生成规则，允许软件渲染的图形桌面。
+数字 group 授权作用于该 GID 可访问的全部资源，不是单设备 ACL；只对明确选中的服务启用。
+不授予 card/input/TTY，不跟随节点/输出路径链接，不接受 root/无效 GID。
+平台在生成之后才映射设备时需要重新加载；已运行进程不会凭空获得新 group，不能因此
+擅自重启持久桌面。生成文件由 systemd 清除并重建，不写 kit 成功状态或平台认证。
 `apply` 默认仍是计划；实际首次启动的 unit 添加 `--apply`。
 它要求 root 身份和 `/var/lib/lightos/initialized`，在 `lightos-setup.service` 之后运行，
 不替换平台注入脚本，不读取 seed、不创建重复账号、不接管 SSH。

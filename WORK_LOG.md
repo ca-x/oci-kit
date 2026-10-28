@@ -16,6 +16,9 @@
   malformed selected nodes are rejected before service policy is written.
 - All compilation, formatting and executable validation remain remote.
   Source implementation is not yet accepted device or desktop behavior.
+- Implementation run `40717635975` reports one formatting-only import-order
+  difference in `main.rs`; apply the runner's exact edit and require a fresh
+  full run. Do not infer whole-gate acceptance from successful sibling jobs.
 
 ## 2026-10-28 — Desktop dependency gate remote verification
 

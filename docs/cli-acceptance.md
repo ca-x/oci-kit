@@ -29,6 +29,24 @@ state, not GPG cryptography or the target distribution's packaged trust data.
 Actual Pond keyring/systemd/desktop behavior still needs image/platform
 acceptance. No real seed, password, SSH key or host keyring is used in tests.
 
+## Desktop extension gate
+
+The ordering extension passed full GitHub run `40684692564` at `e682f78` and
+independent review. The Pond recipe's actual profile then passed source and
+real-toolkit installation in run `40713790188` at `9b0d20e`, including repeated
+installation with opaque platform settings present and absent.
+
+The numeric render-node generator extension is still awaiting full remote
+verification and review. Its meaningful schema/install RED is `40715702736`;
+see `docs/superpowers/plans/2026-10-28-render-node-groups.md`. The expanded
+chroot harness uses synthetic device metadata only, never device I/O or host
+device chmod/chown. Generated group policy is not evidence that systemd has
+started both services with those credentials or that actual GPU rendering,
+the Pond shell, persistent Niri owner or platform proxy works.
+
+The desktop extension gate remains open. Do not resume the suspended headless
+Pond image pipeline based on the historical keyring-only completion below.
+
 ## Build and execution gates
 
 - Native Linux: 44 Rust tests; formatting, strict clippy, rustdoc and release
@@ -54,8 +72,9 @@ re-ran the native tests, static execution checks and 14 bubblewrap cases, and
 closed both earlier initialization findings. Later documentation-only evidence
 updates do not change these reviewed binaries or workflow definitions.
 
-Pond packaging may begin as the next phase. It did not run while this gate was
-open, and the successful CLI gate does not claim an image or a boot has passed.
+That initial gate permitted the first construction phase; it did not claim an
+image or boot had passed. The later desktop requirement reopens the gate as
+described above, and packaging now remains suspended.
 
 ## Reproduction
 
