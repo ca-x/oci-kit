@@ -7,8 +7,13 @@ use std::time::{Duration, Instant};
 
 fn main() -> ExitCode {
     let arguments: Vec<_> = std::env::args().skip(1).collect();
-    assert_eq!(arguments.len(), 2);
-    assert!(matches!(arguments[0].as_str(), "--add" | "--populate"));
+    assert!(!arguments.is_empty());
+    if arguments[0] == "--init" {
+        assert_eq!(arguments.len(), 1);
+    } else {
+        assert_eq!(arguments.len(), 2);
+        assert!(matches!(arguments[0].as_str(), "--add" | "--populate"));
+    }
     writeln!(
         OpenOptions::new()
             .create(true)

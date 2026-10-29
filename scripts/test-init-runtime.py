@@ -88,6 +88,77 @@ class InitRuntime(unittest.TestCase):
         path = self.root / "calls"
         return path.read_text().splitlines() if path.exists() else []
 
+    def offline_root(self):
+        self.marker.unlink()
+        self.seed.unlink()
+        (self.root / ".oci-kit-staging").write_text("oci-kit offline staging v1\n")
+        (self.root / "usr/share/pacman/keyrings/archlinux.gpg").write_bytes(b"fixture")
+
+    def prepare(self, apply=True, root=None):
+        command = [str(self.binary), "prepare-keyrings", "--root", str(root or self.root), "--config", str(self.config)]
+        if apply:
+            command.append("--apply")
+        return subprocess.run(command, capture_output=True, text=True, timeout=20, env={"PATH": "/fixture-untrusted-path"})
+
+    def test_offline_keyring_plan_never_executes_or_marks_runtime_ready(self):
+        self.offline_root()
+        result = self.prepare(apply=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        document = json.loads(result.stdout)
+        self.assertFalse(document["apply"])
+        self.assertEqual(document["pacman_keyrings"], ["archlinux", "pond"])
+        self.assertEqual(self.calls(), [])
+        self.assertFalse(self.state.parent.exists())
+        self.assertFalse(self.marker.exists())
+        self.assertFalse(self.seed.exists())
+
+    def test_offline_keyrings_prepare_in_order_without_platform_or_auth_state(self):
+        self.offline_root()
+        expected = ["--init", *expected_calls("archlinux", "pond")]
+        for attempt in range(2):
+            result = self.prepare()
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(json.loads(result.stdout)["apply"])
+            self.assertEqual(self.calls(), expected * (attempt + 1))
+            self.assertEqual((self.root / "observed-path").read_text(), "/usr/bin:/usr/sbin")
+            self.assertFalse(self.state.parent.exists())
+            self.assertFalse(self.marker.exists())
+            self.assertFalse(self.seed.exists())
+            self.assertFalse((self.root / "etc/lightos/remote-desktop.env").exists())
+
+    def test_offline_keyrings_refuse_platform_or_remote_state_before_commands(self):
+        self.offline_root()
+        for relative in ("var/lib/lightos/initialized", "etc/lightos/seed.env", "etc/lightos/remote-desktop.env"):
+            with self.subTest(path=relative):
+                candidate = self.root / relative
+                candidate.write_text("opaque-fixture-do-not-read\n")
+                result = self.prepare()
+                self.failure(result, "offline")
+                self.assertNotIn("opaque-fixture-do-not-read", result.stdout + result.stderr)
+                self.assertEqual(self.calls(), [])
+                self.assertFalse(self.state.parent.exists())
+                candidate.unlink()
+
+    def test_offline_keyrings_preflight_every_public_ring_before_init(self):
+        self.offline_root()
+        (self.root / "usr/share/pacman/keyrings/pond.gpg").unlink()
+        self.failure(self.prepare(), "keyring is absent: pond")
+        self.assertEqual(self.calls(), [])
+
+    def test_offline_keyring_init_failure_aborts_before_import(self):
+        self.offline_root()
+        (self.root / "fail").touch()
+        self.failure(self.prepare(), "pacman-key failed")
+        self.assertEqual(self.calls(), ["--init"])
+        self.assertFalse(self.state.parent.exists())
+
+    def test_offline_keyrings_do_not_accept_the_live_root_or_an_unmarked_directory(self):
+        self.offline_root()
+        self.failure(self.prepare(root=Path("/")), "running filesystem root")
+        (self.root / ".oci-kit-staging").unlink()
+        self.failure(self.prepare(), "marked offline rootfs")
+        self.assertEqual(self.calls(), [])
+
     def generator_profile(self):
         services = '["desktop.service", "transport.service"]'
         self.config.write_text(
