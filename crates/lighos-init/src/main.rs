@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use lighos_init::{InitPlan, Profile, apply, generate_systemd, install, plan};
+use lighos_init::{InitPlan, Profile, apply, generate_systemd, install, plan, prepare_keyrings};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -27,6 +27,14 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Command {
+    PrepareKeyrings {
+        #[arg(long)]
+        root: PathBuf,
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        apply: bool,
+    },
     Install {
         #[arg(long)]
         root: PathBuf,
@@ -48,6 +56,15 @@ fn main() -> Result<()> {
         return generate_systemd(&arguments);
     }
     match Args::parse().command {
+        Command::PrepareKeyrings {
+            root,
+            config,
+            apply,
+        } => {
+            let profile = Profile::parse(&fs::read_to_string(config)?)?;
+            let plan = prepare_keyrings(&root, &profile, apply)?;
+            println!("{}", serde_json::to_string_pretty(&plan)?);
+        }
         Command::Install { root, config } => {
             let profile = Profile::parse(&fs::read_to_string(config)?)?;
             install(&root, &profile, &std::env::current_exe()?)?;

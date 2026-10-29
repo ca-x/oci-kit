@@ -153,6 +153,14 @@ impl StagingRoot {
         &self.path
     }
 
+    pub fn process_fd_path(&self) -> PathBuf {
+        PathBuf::from(format!(
+            "/proc/{}/fd/{}",
+            std::process::id(),
+            self.directory.as_raw_fd()
+        ))
+    }
+
     pub fn check_path(&self, relative: &Path) -> Result<()> {
         self.kind(relative).map(|_| ())
     }
@@ -340,6 +348,25 @@ fn reject_mounts(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn subprocess_source_stays_pinned_after_staging_path_replacement() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("root");
+        fs::create_dir(&path).unwrap();
+        mark(&path).unwrap();
+        fs::write(path.join("sentinel"), b"original").unwrap();
+        let root = StagingRoot::open(&path).unwrap();
+        fs::rename(&path, directory.path().join("moved")).unwrap();
+        fs::create_dir(&path).unwrap();
+        fs::write(path.join("sentinel"), b"replacement").unwrap();
+        let output = std::process::Command::new("/usr/bin/cat")
+            .arg(root.process_fd_path().join("sentinel"))
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert_eq!(output.stdout, b"original");
+    }
 
     #[test]
     fn mount_boundary_is_enforced_without_a_matching_mountinfo_snapshot() {

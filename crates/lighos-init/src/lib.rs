@@ -14,8 +14,10 @@ use sha2::{Digest, Sha256};
 use tempfile::NamedTempFile;
 
 mod render_groups;
+mod keyrings;
 
 pub use render_groups::generate_systemd;
+pub use keyrings::{KeyringPlan, prepare_keyrings};
 
 const UNIT: &str = include_str!("../systemd/lighos-init.service");
 const STATE_DIRECTORY: &str = "/var/lib/oci-kit";
