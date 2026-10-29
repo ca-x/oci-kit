@@ -125,6 +125,25 @@ reason = "Downloaded artifacts are not runtime dependencies"
 ## lighos-init
 
 这是 `crates/lighos-init` 中的 LightOS adapter，不是通用初始化引擎。
+
+构建期需要先安装 Arch 软件包时，使用显式离线入口，而不是伪造平台初始化成功：
+
+```sh
+lighos-init prepare-keyrings --root ./staging --config lightos.toml
+lighos-init prepare-keyrings --root ./staging --config lightos.toml --apply
+```
+
+默认只输出 JSON 计划；应用需要 root 和构建宿主的 `/usr/bin/bwrap`。
+目标必须已由 `rootfs-cleaner mark` 标记且不是运行根，不能有平台 seed、完成标记
+或远程认证文件。入口只检查这些状态的 metadata，不读取内容。
+先检查全部公开 keyring，再在独立 PID/IPC/network/UTS/mount namespace 内调用
+原生 `pacman-key --init` 和 add/populate；固定目录 fd，清空父子命令环境，不联网。
+基础 `archlinux` 与声明的额外 keyring 各处理一次。失败立即返回，不创建用户、认证、
+服务启用状态或 kit/平台完成标记；原有运行期 `apply` 的前置条件保持不变。
+配方必须在包事务后清理临时生成的 GPG 私钥/信任状态，再由平台和 post-setup hook
+在每个实例重建；这个入口不会把准备过的构建目录当作已初始化的实例。
+该新增入口的 GitHub CLI 验收仍在进行，不表示 Pond 的包事务已通过。
+
 接口支持非秘密的 `pacman_keyrings`、可选 `post_setup_services`，以及显式设备授权
 `render_node_services`（新增 generator 的远程验收状态见 `docs/cli-acceptance.md`）：
 

@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use anyhow::{Context, Result, ensure};
 use oci_kit::staging::StagingRoot;
@@ -14,11 +14,7 @@ pub struct KeyringPlan {
     pub apply: bool,
 }
 
-pub fn prepare_keyrings(
-    root: &Path,
-    profile: &Profile,
-    should_apply: bool,
-) -> Result<KeyringPlan> {
+pub fn prepare_keyrings(root: &Path, profile: &Profile, should_apply: bool) -> Result<KeyringPlan> {
     let root = StagingRoot::open(root)?;
     for relative in [
         "var/lib/lightos/initialized",
@@ -95,7 +91,7 @@ fn run(root: &StagingRoot, arguments: &[&str]) -> Result<()> {
             "/usr/bin/pacman-key",
         ])
         .args(arguments)
-        .stdout(Stdio::stderr())
+        .stdout(std::io::stderr())
         .status()
         .context("running offline pacman-key in the staged namespace")?;
     ensure!(
