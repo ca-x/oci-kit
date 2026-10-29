@@ -1,5 +1,8 @@
 # Offline package keyrings for the LightOS recipe
 
+Status: code `eea666f` accepted by full GitHub run `40809926162` and independent
+narrow review; actual Pond package preparation remains the next separate gate.
+
 Actual Pond run `40808148330` reaches pacman but rejects its signed repository:
 the untouched rootfs has no initialized public keyring. Do not disable signature
 checks or forge the platform account-completion marker to reuse runtime apply.

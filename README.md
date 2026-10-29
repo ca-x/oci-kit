@@ -142,7 +142,9 @@ lighos-init prepare-keyrings --root ./staging --config lightos.toml --apply
 服务启用状态或 kit/平台完成标记；原有运行期 `apply` 的前置条件保持不变。
 配方必须在包事务后清理临时生成的 GPG 私钥/信任状态，再由平台和 post-setup hook
 在每个实例重建；这个入口不会把准备过的构建目录当作已初始化的实例。
-该新增入口的 GitHub CLI 验收仍在进行，不表示 Pond 的包事务已通过。
+该入口在代码 `eea666f` 的 GitHub `40809926162` 已通过 Rust/MSRV、fmt/clippy/doc、
+静态执行与全部 26 个运行用例，独立窄审无新增 P1/P2；受控 helper 验收不表示
+Pond 的真实 GPG/仓库签名和包事务已通过。
 
 接口支持非秘密的 `pacman_keyrings`、可选 `post_setup_services`，以及显式设备授权
 `render_node_services`（新增 generator 的远程验收状态见 `docs/cli-acceptance.md`）：

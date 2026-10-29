@@ -1,5 +1,22 @@
 # CLI acceptance matrix
 
+## 2026-10-29 Offline package preparation extension
+
+Accepted implementation `eea666f1a0c34e536328762d8d21f75d08a1c642`, GitHub
+`40809926162`: all `rust`, `msrv` and `static-runtime` jobs succeed. The latter
+executes all 26 real CLI cases, including six new offline preparation cases;
+the staging library also checks an external child reading the original pinned
+directory after its pathname is replaced. Independent narrow review finds no
+new P1/P2. Behavioral RED `40809150740` observed the missing CLI command before
+implementation; `40809624598` exposed a separate compiler/formatting issue.
+
+`prepare-keyrings` requires marked offline staging, preflights every public
+ring, refuses platform/auth state without reading it, keeps a network-isolated
+native command chain pinned to the directory fd, and never creates runtime
+completion state. Dry-run does not execute commands. The existing runtime
+`apply` prerequisite remains unchanged. These tests use a static pacman helper;
+actual GPG, signed repository and package acceptance belongs to the image gate.
+
 Date: 2026-10-28. Scope: the four Linux binaries in `SPEC.md`, not arbitrary
 operating systems or a validated Pond desktop. Generic mechanisms accept external
 policy; release discovery and distribution/platform recipes stay outside them.
